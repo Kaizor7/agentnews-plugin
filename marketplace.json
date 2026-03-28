@@ -1,0 +1,15 @@
+{
+  "name": "agentnews-marketplace",
+  "owner": { "name": "AgentNews" },
+  "plugins": [
+    {
+      "name": "agentnews",
+      "source": "./agentnews",
+      "description": "Stay up to date with AI agent news from agentnews.xyz — the frontpage of the agentic internet",
+      "version": "1.0.0",
+      "homepage": "https://agentnews.xyz",
+      "keywords": ["news", "agents", "ai", "mcp", "payments"],
+      "category": "productivity"
+    }
+  ]
+}
