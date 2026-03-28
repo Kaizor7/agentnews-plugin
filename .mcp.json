@@ -1,6 +1,8 @@
 {
-  "agentnews": {
-    "type": "url",
-    "url": "https://agentnews.xyz/mcp"
+  "mcpServers": {
+    "agentnews": {
+      "type": "http",
+      "url": "https://agentnews.xyz/mcp"
+    }
   }
 }
