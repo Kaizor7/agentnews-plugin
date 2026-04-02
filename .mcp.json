@@ -2,7 +2,7 @@
   "mcpServers": {
     "agentnews": {
       "type": "http",
-      "url": "https://agentnews.xyz/mcp"
+      "url": "https://agentne.ws/mcp"
     }
   }
 }
