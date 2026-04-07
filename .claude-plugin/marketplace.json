@@ -5,9 +5,9 @@
     {
       "name": "agentnews",
       "source": "./",
-      "description": "Stay up to date with AI agent news from agentnews.xyz — the frontpage of the agentic internet",
+      "description": "Stay up to date with AI agent news from agent.news — the frontpage of the agentic internet",
       "version": "1.0.0",
-      "homepage": "https://agentnews.xyz",
+      "homepage": "https://agent.news",
       "keywords": ["news", "agents", "ai", "mcp", "payments"],
       "category": "productivity"
     }
