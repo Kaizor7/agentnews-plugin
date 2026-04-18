@@ -1,0 +1,16 @@
+{
+  "description": "AgentNews session hook — injects live headlines on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
