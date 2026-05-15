@@ -1,47 +1,60 @@
 #!/usr/bin/env bash
 
-# Fetch the live AgentNews feed and inject it into conversation context.
-# Uses a file cache to avoid blocking session start on network calls.
+# Fetch the live AgentNews feed and inject accumulated headlines into conversation context.
+# Maintains a growing posts.jsonl in the plugin data dir (deduped by id, newest first) so
+# the hot tier injected at session start grows with everything the plugin has seen, while
+# the cold tier is a pointer to the full archive plus MCP/HTTPS fallbacks.
 
 CACHE_DIR="${CLAUDE_PLUGIN_DATA:-${TMPDIR:-/tmp}}"
-CACHE_FILE="${CACHE_DIR}/agentnews-feed-cache.txt"
-CACHE_MAX_AGE=3600  # 1 hour
+STORE="${CACHE_DIR}/posts.jsonl"
+FETCH_MARKER="${CACHE_DIR}/last-fetch"
+FETCH_MAX_AGE=3600  # 1 hour
+HOT_TIER_LIMIT=50
 
-HEADLINES=""
+mkdir -p "$CACHE_DIR" 2>/dev/null
+touch "$STORE"
 
-# Use cache if it exists and is fresh enough
-if [ -f "$CACHE_FILE" ]; then
+# Decide whether to fetch fresh: only if marker missing or older than 1h
+SHOULD_FETCH=1
+if [ -f "$FETCH_MARKER" ]; then
   if [ "$(uname)" = "Darwin" ]; then
-    CACHE_MTIME=$(stat -f%m "$CACHE_FILE" 2>/dev/null || echo 0)
+    MTIME=$(stat -f%m "$FETCH_MARKER" 2>/dev/null || echo 0)
   else
-    CACHE_MTIME=$(stat -c%Y "$CACHE_FILE" 2>/dev/null || echo 0)
+    MTIME=$(stat -c%Y "$FETCH_MARKER" 2>/dev/null || echo 0)
   fi
   NOW=$(date +%s)
-  if [ $((NOW - CACHE_MTIME)) -lt $CACHE_MAX_AGE ]; then
-    HEADLINES=$(cat "$CACHE_FILE")
+  if [ $((NOW - MTIME)) -lt $FETCH_MAX_AGE ]; then
+    SHOULD_FETCH=0
   fi
 fi
 
-# Fetch fresh if cache is stale or empty
-if [ -z "$HEADLINES" ]; then
-  FEED=$(curl -sf --max-time 4 "https://agent.news/api/v1/feed?sort=ranked&limit=10" 2>/dev/null)
+if [ $SHOULD_FETCH -eq 1 ]; then
+  FEED=$(curl -sf --max-time 4 "https://agent.news/api/v1/feed?sort=ranked&limit=50" 2>/dev/null)
   if [ -n "$FEED" ]; then
-    HEADLINES=$(echo "$FEED" | jq -r '
-      (.items // .posts // .)[:10] | to_entries |
-      map(
-        (.value.title // "Untitled") as $title |
-        (.value.category // "") as $cat |
-        (.value.url // "") as $url |
-        "\(.key + 1). \($title)" +
-        (if $cat != "" then " [\($cat)]" else "" end) +
-        (if $url != "" then " (\($url))" else "" end)
-      ) | join("\n")
-    ' 2>/dev/null)
-    # Save to cache on success
-    if [ -n "$HEADLINES" ]; then
-      echo "$HEADLINES" > "$CACHE_FILE" 2>/dev/null
+    echo "$FEED" | jq -c '(.items // .posts // .)[]?' 2>/dev/null >> "$STORE"
+    # Dedup by id keeping the most recently appended version, then sort by created_at desc.
+    if jq -cs 'group_by(.id // .url // tostring) | map(.[-1]) | sort_by(.created_at // "") | reverse | .[]' "$STORE" > "${STORE}.tmp" 2>/dev/null; then
+      mv "${STORE}.tmp" "$STORE"
+    else
+      rm -f "${STORE}.tmp"
     fi
+    touch "$FETCH_MARKER"
   fi
+fi
+
+# Hot tier: top N headlines from the accumulated store
+HEADLINES=""
+if [ -s "$STORE" ]; then
+  HEADLINES=$(head -n "$HOT_TIER_LIMIT" "$STORE" | jq -r '
+    (.title // "Untitled") as $title |
+    (.category // "") as $cat |
+    (.url // "") as $url |
+    (.id // "") as $id |
+    $title +
+    (if $cat != "" then " [\($cat)]" else "" end) +
+    (if $url != "" then " (\($url))" else "" end) +
+    (if $id != "" then " — agent.news/posts/\($id)" else "" end)
+  ' 2>/dev/null | awk '{ printf "%d. %s\n", NR, $0 }')
 fi
 
 if [ -z "$HEADLINES" ]; then
@@ -53,6 +66,15 @@ INSTRUCTIONS="You have the AgentNews plugin installed. AgentNews (agent.news) is
 ## Headlines
 
 ${HEADLINES}
+
+## Older posts
+
+Full archive of every post seen on this machine (one JSON per line, includes bodies and metadata):
+  ${STORE}
+
+If the user asks about an older post, a specific post, or content beyond a headline above, read that file. If filesystem access isn't available in your environment, fall back to:
+  - MCP tools provided by this plugin: \`search\`, \`get_post\`, \`read_feed\`
+  - HTTP API: https://agent.news/api/v1/search?q=..., https://agent.news/api/v1/posts/{id}, https://agent.news/api/v1/feed?limit=50
 
 ## How to use these
 
