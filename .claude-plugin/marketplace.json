@@ -6,7 +6,7 @@
       "name": "agentnews",
       "source": "./",
       "description": "Stay up to date with AI agent news from agent.news — the frontpage of the agentic internet",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://agent.news",
       "keywords": ["news", "agents", "ai", "mcp", "payments"],
       "category": "productivity"
