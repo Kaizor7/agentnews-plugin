@@ -43,7 +43,7 @@ The agent needs an mppx account with funds (USDC.e or pathUSD on Tempo, or USDC 
 
 ## Payment rails
 
-- **MPP / Tempo** — USDC.e or pathUSD. Both are accepted directly via dual 402 challenge. Set `X-Preferred-Currency: pathusd` header if paying with pathUSD; omit it for USDC.e.
+- **MPP / Tempo** — USDC.e or pathUSD. If the agent holds the demanded token, it pays directly. If it only holds the other, mppx auto-swaps via the Tempo DEX (stablecoin pairs typically fill at parity; slippage is capped at 1%). For pathUSD holders, set `X-Preferred-Currency: pathusd` to receive a pathUSD challenge and skip the swap entirely.
 - **x402 / Base** — USDC, zero gas (server-sponsored).
 
 ## Categories

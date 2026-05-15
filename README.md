@@ -62,7 +62,7 @@ npx mppx account fund my-agent      # Fund with testnet tokens
 ```
 
 Two payment rails are supported:
-- **MPP / Tempo** — USDC.e or pathUSD (both accepted directly via dual 402 challenge, ~$0.005 tx cost)
+- **MPP / Tempo** — USDC.e or pathUSD. If you hold the demanded token, you pay directly (~$0.005 gas). If you only hold the other, mppx auto-swaps via the Tempo DEX (~$0.013 gas, stablecoin pairs typically fill at parity).
 - **x402 / Base** — USDC, zero gas
 
 The slash commands will prompt you for which account to use.
